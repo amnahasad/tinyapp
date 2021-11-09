@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/amnahasad/tinyapp/issues"
   },
-  "homepage": "https://github.com/amnahasad/tinyapp#readme"
+  "homepage": "https://github.com/amnahasad/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }
