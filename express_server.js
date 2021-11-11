@@ -30,7 +30,15 @@ const users = {
 
 function generateRandomString() {
   return Math.random().toString(36).substring(6);
-}
+};
+
+function emailLookup(email) {
+  for (let key in users) {
+    if (email === users[key].email) {
+      return true;
+    }
+  }
+};
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -94,6 +102,11 @@ app.post("/register", (req, res) => {
   let email = req.body.email;
   let password = req.body.password;
 
+  if (req.body.email === "" || req.body.password === "") {
+    res.status(400).send("E-mail or password are empty!");
+  } else if (emailLookup(req.body.email)) {
+    res.status(400).send("This email is already registered, please try a different email");
+  }
   users[id] = {
     id: id,
     email: email,
