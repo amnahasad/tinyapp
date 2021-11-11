@@ -35,9 +35,10 @@ function generateRandomString() {
 function emailLookup(email) {
   for (let key in users) {
     if (email === users[key].email) {
-      return true;
+      return users[key];
     }
   }
+  return undefined;
 };
 
 app.get("/", (req, res) => {
@@ -83,12 +84,19 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
-  res.redirect("/urls");
+  const {email, password} = req.body;
+  const user = emailLookup(email);
+  if (!user || password !== user.password) {
+    return res.status(403).send("Email or password cannot be found");
+  } else {
+    res.cookie("user_id", user.id);
+    return res.redirect("/urls");
+  }
+  
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id', user.id);
   res.redirect("/urls");
 });
 
