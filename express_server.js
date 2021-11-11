@@ -96,7 +96,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id', user.id);
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
@@ -142,11 +142,6 @@ app.get("/set", (req, res) => {
     const a = 1;
     res.send(`a = ${a}`);
 });
-   
-///fetch will give an error, since a is not defined in this route
-// app.get("/fetch", (req, res) => {
-//     res.send(`a = ${a}`);
-// });
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
