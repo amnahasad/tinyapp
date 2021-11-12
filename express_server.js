@@ -1,6 +1,7 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 var cookieParser = require('cookie-parser');
+const { url } = require("inspector");
 
 const app = express();
 app.use(cookieParser());
@@ -50,10 +51,25 @@ app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
+
+function urlsForUser(id) {
+  let filteredUrls = {};
+
+  for (let url in urlDatabase) {
+    if (urlDatabase[url].userID === id) {
+      filteredUrls[url] = urlDatabase[url];
+    }
+  }
+  return filteredUrls;
+}
+
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, user: users[req.cookies["user_id"]] };
-  console.log(templateVars);
-  res.render("urls_index", templateVars);
+  if (!users[req.cookies["user_id"]]) {
+    res.redirect("/login");
+  } else {
+    const templateVars = {user: users[req.cookies["user_id"]], filteredUrls: urlsForUser(users[req.cookies["user_id"]].id) };
+    res.render("urls_index", templateVars);
+  }
 });
 
 app.get("/urls/new", (req, res) => {
@@ -62,8 +78,7 @@ app.get("/urls/new", (req, res) => {
   if (users[req.cookies["user_id"]]) {
     res.render("urls_new", templateVars);
   } else {
-    // res.status(403).send("Error, you are not registered or logged in!");
-    return res.redirect('/login');
+    res.redirect('/login');
   }
 });
 
@@ -79,39 +94,59 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  console.log("This is the urlDatabase:--------", urlDatabase[req.params.shortURL]);
   if (!urlDatabase[req.params.shortURL]) {
-    res.status(400).send("Error, this url does not exist");
+    return res.status(400).send("Error, this url does not exist");
   }
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.cookies["user_id"]] };
-  if (users[req.cookies["user_id"]]) {
-    res.render("urls_show", templateVars);
+  const userId = req.cookies["user_id"];
+  const shortUrl = req.params.shortURL;
+  console.log(userId);
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL, user: users[req.cookies["user_id"]], filteredUrls: urlsForUser(req.cookies["user_id"]) };
+  if (urlDatabase[shortUrl].userID !== userId) {
+    res.status(403).send("Error, you can't view My URLS. You must be registered or log in!");
   } else {
-    res.redirect('/urls');
-  }
+    res.render("urls_show", templateVars);
+  } 
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  if (!urlDatabase[req.params.shortURL]) {
-    res.status(400).send("Error, this url does not exist");
+  const shortUrl = req.params.shortURL;
+  if (!urlDatabase[shortUrl]) {
+    return res.status(400).send("Error, this url does not exist");
+  } 
+  if (urlDatabase[shortUrl].userID !== userId) {
+    return res.status(403).send("Error, you can't delete My URLS!");
+  } else {
+    const longURL = urlDatabase[shortUrl].longURL;
+    res.redirect(longURL);
   }
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  console.log("THis is the longURL00------------", longURL);
-  
-  res.redirect(longURL);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect("/urls");
+  const userId = req.cookies["user_id"];
+  const shortUrl = req.params.shortURL;
+  if (!urlDatabase[shortUrl]) {
+    return res.status(403).send("Error, url does not exist");
+  }
+  if (urlDatabase[shortUrl].userID !== userId) {
+    return res.status(403).send("Error, you can't delete My URLS!");
+  } else {
+    delete urlDatabase[shortUrl];
+    res.redirect("/urls");
+  }
 });
 
 
 app.post("/urls/:shortURL", (req, res) => {
-  const user_id = users[req.cookies["user_id"]];
-  const shortURL = req.params.shortURL;
+  const shortUrl = req.params.shortURL;
   const longURL = req.body.longURL;
-  urlDatabase[shortURL] = {longURL: longURL, userID: user_id};
-  res.redirect("/urls");
+  const userId = req.cookies["user_id"];
+  if (urlDatabase[shortUrl].userID !== userId) {
+    res.status(403).send("Error, you can't update My URLS!");
+  } else {
+    urlDatabase[shortUrl].longURL = longURL;
+    res.redirect("/urls");
+  }
 });
 
 app.post("/login", (req, res) => {
@@ -123,7 +158,6 @@ app.post("/login", (req, res) => {
     res.cookie("user_id", user.id);
     return res.redirect("/urls");
   }
-  
 });
 
 app.post("/logout", (req, res) => {
@@ -142,9 +176,9 @@ app.post("/register", (req, res) => {
   let password = req.body.password;
 
   if (req.body.email === "" || req.body.password === "") {
-    res.status(400).send("E-mail or password are empty!");
+    return res.status(400).send("E-mail or password are empty!");
   } else if (emailLookup(req.body.email)) {
-    res.status(400).send("This email is already registered, please try a different email");
+    return res.status(400).send("This email is already registered, please try a different email");
   }
   users[id] = {
     id: id,
