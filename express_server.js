@@ -2,6 +2,7 @@ const bodyParser = require("body-parser");
 const express = require("express");
 var cookieParser = require('cookie-parser');
 const { url } = require("inspector");
+const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(cookieParser());
@@ -21,16 +22,19 @@ const urlDatabase = {
   }
 };
 
+const password = "purple-monkey-dinosaur"; // found in the req.params object
+const hashedPassword = bcrypt.hashSync(password, 10);
+
 const users = { 
   "userRandomID": {
     id: "userRandomID", 
-    email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
+    email: "a@a.com", 
+    password: bcrypt.hashSync("123", 10)
   },
  "user2RandomID": {
     id: "user2RandomID", 
-    email: "user2@example.com", 
-    password: "dishwasher-funk"
+    email: "b@b.com", 
+    password: bcrypt.hashSync("123", 10)
   }
 };
 
@@ -152,12 +156,14 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post("/login", (req, res) => {
   const {email, password} = req.body;
   const user = emailLookup(email);
-  if (!user || password !== user.password) {
+  if (!user) {
     return res.status(403).send("Email or password cannot be found");
-  } else {
-    res.cookie("user_id", user.id);
-    return res.redirect("/urls");
+  } 
+  if (!bcrypt.compareSync(password, user.password)) {
+    return res.status(403).send("Email or password cannot be found");
   }
+  res.cookie("user_id", user.id);
+  return res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
@@ -171,22 +177,26 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  let id = generateRandomString();
   let email = req.body.email;
   let password = req.body.password;
 
-  if (req.body.email === "" || req.body.password === "") {
+  if (email === "" || password === "") {
     return res.status(400).send("E-mail or password are empty!");
-  } else if (emailLookup(req.body.email)) {
+  } 
+  
+  if (emailLookup(email)) {
     return res.status(400).send("This email is already registered, please try a different email");
   }
+
+  let id = generateRandomString();
+  const hashedPassword = bcrypt.hashSync(password, 10);
   users[id] = {
     id: id,
-    email: email,
-    password: password
+    email,
+    password: hashedPassword
   };
   res.cookie("user_id", id);
-  console.log(users);
+  console.log("This is the users------++++++++++++++++++", users);
   res.redirect("/urls");
 });
 
