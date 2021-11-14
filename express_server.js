@@ -2,7 +2,6 @@ const bodyParser = require("body-parser");
 const express = require("express");
 const cookieSession = require('cookie-session');
 var cookieParser = require('cookie-parser');
-// const { url } = require("inspector");
 const bcrypt = require('bcryptjs');
 const { emailLookup } = require("./helpers");
 
@@ -12,32 +11,32 @@ app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2']
 }));
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 
 const urlDatabase = {
   b6UTxQ: {
-      longURL: "https://www.tsn.ca",
-      userID: "aJ48lW"
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
   },
   i3BoGr: {
-      longURL: "https://www.google.ca",
-      userID: "aJ48lW"
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
   }
 };
 
 
-const users = { 
+const users = {
   "userRandomID": {
-    id: "userRandomID", 
-    email: "a@a.com", 
+    id: "userRandomID",
+    email: "a@a.com",
     password: bcrypt.hashSync("123", 10)
   },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "b@b.com", 
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "b@b.com",
     password: bcrypt.hashSync("123", 10)
   }
 };
@@ -64,7 +63,7 @@ function urlsForUser(id) {
 }
 
 app.get("/urls", (req, res) => {
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
   const filteredUrls = urlsForUser(userId);
 
@@ -77,7 +76,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
   if (!user) {
     return res.redirect("/login");
@@ -87,47 +86,42 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
   const longURL = req.body.longURL;
   if (!user) {
     return res.redirect("/login");
   }
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = {longURL, userID: userId};
+  urlDatabase[shortURL] = { longURL, userID: userId };
   res.redirect(`/urls`);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  console.log("This is a testtt------");
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
   const longURL = urlDatabase[req.params.shortURL].longURL;
-  console.log("This is the longURL------", longURL);
   const filteredUrls = urlsForUser(userId);
   if (!user) {
     return res.redirect("/login");
   }
-  console.log("This is the urlDatabase:--------", urlDatabase[req.params.shortURL]);
   if (!urlDatabase[req.params.shortURL]) {
     return res.status(400).send("Error, this url does not exist");
   }
   const shortUrl = req.params.shortURL;
-  console.log(userId);
-  const templateVars = { shortUrl, longURL, user, filteredUrls};
+  const templateVars = { shortUrl, longURL, user, filteredUrls };
   if (urlDatabase[shortUrl].userID !== userId) {
     return res.status(403).send("Error, you can't view My URLS. You must be registered or log in!");
   } else {
     res.render("urls_show", templateVars);
-    // res.redirect("/urls");
-  } 
+  }
 });
 
 app.get("/u/:shortURL", (req, res) => {
   const shortUrl = req.params.shortURL;
   if (!urlDatabase[shortUrl]) {
     return res.status(400).send("Error, this url does not exist");
-  } 
+  }
   if (urlDatabase[shortUrl].userID !== userId) {
     return res.status(403).send("Error, you can't delete My URLS!");
   } else {
@@ -137,7 +131,7 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
 
   if (!user) {
@@ -157,7 +151,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 
 app.post("/urls/:shortURL", (req, res) => {
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
 
   if (!user) {
@@ -174,27 +168,25 @@ app.post("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const {email, password} = req.body;
+  const { email, password } = req.body;
   const user = emailLookup(email, users);
   if (!user) {
     return res.status(403).send("Email or password cannot be found");
-  } 
+  }
   if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send("Email or password cannot be found");
   }
-  // res.cookie("user_id", user.id);
   req.session.user_id = user.id;
   return res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  // res.clearCookie('user_id');
   req.session = null;
   res.redirect("/urls");
 });
 
 app.get("/register", (req, res) => {
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
   const templateVars = { user, email: req.body.email, password: req.body.password };
   res.render("urls_register", templateVars);
@@ -206,8 +198,8 @@ app.post("/register", (req, res) => {
 
   if (email === "" || password === "") {
     return res.status(400).send("E-mail or password are empty!");
-  } 
-  
+  }
+
   if (emailLookup(email, users)) {
     return res.status(400).send("This email is already registered, please try a different email");
   }
@@ -219,31 +211,28 @@ app.post("/register", (req, res) => {
     email,
     password: hashedPassword
   };
-  // res.cookie("user_id", id);
   req.session.user_id = id;
-  console.log("This is the users------++++++++++++++++++", users);
   res.redirect("/urls");
 });
 
 app.get("/login", (req, res) => {
-  const userId = req.session.user_id; 
+  const userId = req.session.user_id;
   const user = users[userId];
-
   const templateVars = { user };
   res.render("urls_login", templateVars);
 });
 
 app.get("/urls.json", (req, res) => {
-    res.json(urlDatabase);
+  res.json(urlDatabase);
 });
 
 app.get("/hello", (req, res) => {
-    res.send("<html><body>Hello <b>World</b></body></html>\n");
+  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.get("/set", (req, res) => {
-    const a = 1;
-    res.send(`a = ${a}`);
+  const a = 1;
+  res.send(`a = ${a}`);
 });
 
 app.listen(PORT, () => {

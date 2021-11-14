@@ -5,6 +5,6 @@ function emailLookup(email, usersDatabase) {
       }
     }
     return undefined;
-  };
+};
 
-  module.exports = { emailLookup };
+module.exports = { emailLookup };
