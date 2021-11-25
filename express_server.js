@@ -122,8 +122,8 @@ app.get("/u/:shortURL", (req, res) => {
   if (!urlDatabase[shortUrl]) {
     return res.status(400).send("Error, this url does not exist");
   }
-  if (urlDatabase[shortUrl].userID !== userId) {
-    return res.status(403).send("Error, you can't delete My URLS!");
+  if (urlDatabase[shortUrl].userID !== req.session.user_id) {
+    return res.status(403).send("Error, you can't use My URLS!");
   } else {
     const longURL = urlDatabase[shortUrl].longURL;
     res.redirect(longURL);
